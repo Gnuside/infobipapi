@@ -21,14 +21,14 @@ module InfobipApi
             if base_url
                 @base_url = base_url
             else
-                @base_url = 'https://api.infobip.com/sms'
+                @base_url = 'https://api.infobip.com/'
             end
 
             if @base_url[-1, 1] != '/'
                 @base_url += '/'
             end
 
-            @oneapi_authentication = nil
+            @infobipapi_authentication = nil
             @raise_exceptions = true
 
             login()
@@ -41,9 +41,9 @@ module InfobipApi
               'password' => @password,
             }
 
-            is_success, result = execute_POST('/1/session', params)
+            is_success, result = execute_POST('auth/1/session', params)
 
-            return fill_oneapi_authentication(result, is_success)
+            return fill_infobipapi_authentication(result, is_success)
         end
 
         def get_or_create_client_correlator(client_correlator=nil)
@@ -57,8 +57,8 @@ module InfobipApi
         def prepare_headers(request)
             request["User-Agent"] = "InfobipApi-#{InfobipApi::VERSION}"
             request["Content-Type"] = "application/json"
-            if @oneapi_authentication and @oneapi_authentication.ibsso_token
-                request['Authorization'] = "IBSSO #{@oneapi_authentication.ibsso_token}"
+            if @infobipapi_authentication and @infobipapi_authentication.ibsso_token
+                request['Authorization'] = "IBSSO #{@infobipapi_authentication.ibsso_token}"
             else
                 auth_string = Base64.encode64("#{@username}:#{@password}").strip
                 request['Authorization'] = "Basic #{auth_string}"
@@ -140,15 +140,15 @@ module InfobipApi
             @base_url + rest_path
         end
 
-        def fill_oneapi_authentication(json, is_success)
-            @oneapi_authentication = convert_from_json(InfobipApiAuthentication, json, !is_success)
+        def fill_infobipapi_authentication(json, is_success)
+            @infobipapi_authentication = convert_from_json(InfobipApiAuthentication, json, !is_success)
 
-            @oneapi_authentication.username = @username
-            @oneapi_authentication.password = @password
+            @infobipapi_authentication.username = @username
+            @infobipapi_authentication.password = @password
 
-            @oneapi_authentication.authenticated = @oneapi_authentication.ibsso_token ? @oneapi_authentication.ibsso_token.length > 0 : false
+            @infobipapi_authentication.authenticated = @infobipapi_authentication.ibsso_token ? @infobipapi_authentication.ibsso_token.length > 0 : false
 
-            @oneapi_authentication
+            @infobipapi_authentication
         end
 
         def convert_from_json(classs, json, is_error)

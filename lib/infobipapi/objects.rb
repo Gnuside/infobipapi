@@ -40,7 +40,7 @@ module InfobipApi
                 return nil
             end
 
-            return Conversions.from_json(@classs, value, is_error: nil)
+            return Conversions.from_json(@classs, value, nil)
         end
 
         def to_json(value)
@@ -52,7 +52,7 @@ module InfobipApi
 
     class ObjectArrayConversionRule < FieldConversionRule
 
-        def initialize(classs, json_field_name: nil)
+        def initialize(classs, json_field_name = nil)
             super(json_field_name)
             @classs = classs
         end
@@ -65,7 +65,7 @@ module InfobipApi
             result = []
 
             for value in values
-                result.push(Conversions.from_json(@classs, value, is_error: nil))
+                result.push(Conversions.from_json(@classs, value, nil))
             end
 
             return result
@@ -124,7 +124,7 @@ module InfobipApi
 
     class Conversions
 
-        def self.from_json(classs, json, is_error: nil)
+        def self.from_json(classs, json, is_error = nil)
             object = classs.new
 
             Conversions.fill_from_json(object, json, is_error)
@@ -132,7 +132,7 @@ module InfobipApi
             object
         end
 
-        def self.fill_from_json(object, json, is_error: nil)
+        def self.fill_from_json(object, json, is_error = nil)
             if is_error
                 object.exception = Conversions.from_json(InfobipApiError, json, false)
                 return
@@ -157,7 +157,7 @@ module InfobipApi
 
         @@field_conversion_rules = {}
 
-        def oneapi_attr_accessor(attr, field_conversion_rule)
+        def infobipapi_attr_accessor(attr, field_conversion_rule)
             attr_accessor attr
 
             field_conversion_rule.object_field_name = attr

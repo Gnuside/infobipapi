@@ -74,7 +74,7 @@ class InfobipApiTest < MiniTest::Unit::TestCase
     def test_a_exception_serialization
         json = '{"requestError":{"serviceException":{"text":"Request URI missing required component(s): ","messageId":"SVC0002","variables":[""]},"policyException":null}}'
 
-        sms_exception = InfobipApi::Conversions.from_json(OneApi::OneApiError, json, nil)
+        sms_exception = InfobipApi::Conversions.from_json(InfobipApi::InfobipApiError, json, nil)
 
         assert(sms_exception)
         assert_equal(sms_exception.message_id, 'SVC0002')
@@ -84,7 +84,7 @@ class InfobipApiTest < MiniTest::Unit::TestCase
     def test_a_exception_object_array
         json = '{"deliveryInfoList":{"deliveryInfo":[{"address":null,"deliveryStatus":"DeliveryUncertain1"},{"address":null,"deliveryStatus":"DeliveryUncertain2"}],"resourceURL":"http://api.infobip.com/sms/1/smsmessaging/outbound/TODO/requests/28drx7ypaqr/deliveryInfos"}}'
 
-        object = InfobipApi::Conversions.from_json(OneApi::DeliveryInfoList, json, nil)
+        object = InfobipApi::Conversions.from_json(InfobipApi::DeliveryInfoList, json, nil)
 
         assert(object)
         assert(object.delivery_info)
@@ -94,8 +94,8 @@ class InfobipApiTest < MiniTest::Unit::TestCase
     end
 
     def test_a_login
-        @@sms_client = InfobipApi::SmsClient.new(API_USERNAME, API_PASSWORD)
-        assert(@@sms_client)
+        @@sms_connector = InfobipApi::SmsClient.new(API_USERNAME, API_PASSWORD)
+        assert(@@sms_connector)
     end
 
     # use prefix test_b for any function that needs to be run after test_a_login
@@ -105,6 +105,6 @@ class InfobipApiTest < MiniTest::Unit::TestCase
         sms.address = NUMBERS[0]
         sms.message = "Unit Testing: #{__method__}"
         puts sms.inspect
-        @@sms_client.send_sms(sms)
+        @@sms_connector.send_sms(sms)
     end
 end
