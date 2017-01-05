@@ -43,15 +43,25 @@ module InfobipApi
 
     end
 
-    class SMSRequest < InfobipApiModel
+    class SimpleTextSMSRequest < InfobipApiModel
 
-        infobipapi_attr_accessor :sender_address, FieldConversionRule.new(:senderAddress)
-        infobipapi_attr_accessor :sender_name, FieldConversionRule.new(:senderName)
-        infobipapi_attr_accessor :message, FieldConversionRule.new()
-        infobipapi_attr_accessor :address, FieldConversionRule.new()
-        infobipapi_attr_accessor :client_correlator, FieldConversionRule.new(:clientCorrelator)
+        infobipapi_attr_accessor :from, FieldConversionRule.new()
+        infobipapi_attr_accessor :to, FieldConversionRule.new()
+        infobipapi_attr_accessor :text, FieldConversionRule.new()
+
+    end
+
+    class AdvancedSMSRequest < SimpleSMSRequest
+
+        infobipapi_attr_accessor :bulk_id, FieldConversionRule.new(:bulkId)
+        infobipapi_attr_accessor :message_id, FieldConversionRule.new(:messageId)
+        infobipapi_attr_accessor :flash, FieldConversionRule.new()
+        infobipapi_attr_accessor :transliteration, FieldConversionRule.new()
+        infobipapi_attr_accessor :language_code, FieldConversionRule.new(:languageCode)
+        infobipapi_attr_accessor :intermediate_report, FieldConversionRule.new(:intermediateReport)
         infobipapi_attr_accessor :notify_url, FieldConversionRule.new(:notifyUrl)
-        infobipapi_attr_accessor :callback_data, FieldConversionRule.new()
+        infobipapi_attr_accessor :notify_content_type, FieldConversionRule.new(:notifyContentType)
+        infobipapi_attr_accessor :callback_data, FieldConversionRule.new(:callbackData)
         infobipapi_attr_accessor :language, ObjectFieldConverter.new(Language,'language')
 
     end

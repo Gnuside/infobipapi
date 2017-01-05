@@ -3,6 +3,7 @@ require 'net/http'
 require 'net/https'
 require "base64"
 require 'json'
+require 'pry'
 
 require_relative 'objects'
 require_relative 'models'
@@ -63,6 +64,7 @@ module InfobipApi
                 auth_string = Base64.encode64("#{@username}:#{@password}").strip
                 request['Authorization'] = "Basic #{auth_string}"
             end
+            binding.pry
         end
 
         def is_success(response)
@@ -170,6 +172,17 @@ module InfobipApi
             super(username, password, base_url)
         end
 
+        def simple_text_sms(sms)
+            params = {
+            }
+            is_success, result = execute_POST(
+              "/sms/1/smsmessaging/outbound/#{sms.sender_address}/requests",
+              params
+            )
+
+            convert_from_json(ResourceReference, result, !is_success)
+        end
+
         def send_sms(sms)
             client_correlator = sms.client_correlator
             if not client_correlator
@@ -199,7 +212,7 @@ module InfobipApi
             end
 
         is_success, result = execute_POST(
-                    "/1/smsmessaging/outbound/#{sms.sender_address}/requests",
+                    "/sms/1/smsmessaging/outbound/#{sms.sender_address}/requests",
                     params
             )
 
