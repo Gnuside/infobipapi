@@ -64,7 +64,6 @@ module InfobipApi
                 auth_string = Base64.encode64("#{@username}:#{@password}").strip
                 request['Authorization'] = "Basic #{auth_string}"
             end
-            binding.pry
         end
 
         def is_success(response)
@@ -174,9 +173,12 @@ module InfobipApi
 
         def simple_text_sms(sms)
             params = {
+              :from => sms.from,
+              :to => sms.to,
+              :text => sms.text
             }
             is_success, result = execute_POST(
-              "/sms/1/smsmessaging/outbound/#{sms.sender_address}/requests",
+              "/sms/1/text",
               params
             )
 

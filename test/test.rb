@@ -100,11 +100,11 @@ class InfobipApiTest < MiniTest::Unit::TestCase
 
     # use prefix test_b for any function that needs to be run after test_a_login
     def test_b_simple_sms
-        sms = InfobipApi::SMSRequest.new
-        sms.sender_address = 'InfobipApiRuby'
-        sms.address = NUMBERS[0]
-        sms.message = "Unit Testing: #{__method__}"
+        sms = InfobipApi::SimpleTextSMSRequest.new
+        sms.from = 'InfobipApiRuby'
+        sms.to = NUMBERS[0]
+        sms.text = "Unit Testing: #{__method__}"
         puts sms.inspect
-        @@sms_connector.send_sms(sms)
+        puts @@sms_connector.simple_text_sms(sms).inspect
     end
 end

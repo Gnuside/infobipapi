@@ -51,7 +51,7 @@ module InfobipApi
 
     end
 
-    class AdvancedSMSRequest < SimpleSMSRequest
+    class AdvancedTextSMSRequest < SimpleTextSMSRequest
 
         infobipapi_attr_accessor :bulk_id, FieldConversionRule.new(:bulkId)
         infobipapi_attr_accessor :message_id, FieldConversionRule.new(:messageId)
