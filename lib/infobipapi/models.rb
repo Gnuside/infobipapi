@@ -35,11 +35,37 @@ module InfobipApi
     # Messaging:
     # ----------------------------------------------------------------------------------------------------
 
+
+    class AuthenticationAnswer < InfobipApiModel
+
+        infobipapi_attr_accessor :token, FieldConversionRule.new
+
+    end
+
     class Language < InfobipApiModel
 
       infobipapi_attr_accessor :language_code, FieldConversionRule.new(:languageCode)
       infobipapi_attr_accessor :use_single_shift, FieldConversionRule.new(:useSingleShift)
       infobipapi_attr_accessor :use_locking_shift, FieldConversionRule.new(:useLockingShift)
+
+    end
+
+    class StatusAnswer < InfobipApiModel
+
+        infobipapi_attr_accessor :group_id, FieldConversionRule.new(:groupId)
+        infobipapi_attr_accessor :group_name, FieldConversionRule.new(:groupName)
+        infobipapi_attr_accessor :id, FieldConversionRule.new()
+        infobipapi_attr_accessor :name, FieldConversionRule.new()
+        infobipapi_attr_accessor :descripton, FieldConversionRule.new()
+
+    end
+
+    class MessageAnswer < InfobipApiModel
+
+      infobipapi_attr_accessor :to, FieldConversionRule.new()
+      infobipapi_attr_accessor :status, ObjectFieldConverter.new(StatusAnswer, 'status')
+      infobipapi_attr_accessor :sms_count, FieldConversionRule.new(:smsCount)
+      infobipapi_attr_accessor :message_id, FieldConversionRule.new(:messageId)
 
     end
 
@@ -49,6 +75,10 @@ module InfobipApi
         infobipapi_attr_accessor :to, FieldConversionRule.new()
         infobipapi_attr_accessor :text, FieldConversionRule.new()
 
+    end
+
+    class SimpletextSMSAnswer < InfobipApiModel
+      infobipapi_attr_accessor :messages, ObjectArrayConversionRule.new(MessageAnswer, 'messages')
     end
 
     class AdvancedTextSMSRequest < SimpleTextSMSRequest

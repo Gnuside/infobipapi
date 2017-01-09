@@ -95,7 +95,7 @@ class InfobipApiTest < MiniTest::Unit::TestCase
 
     def test_a_login
         @@sms_connector = InfobipApi::SmsClient.new(API_USERNAME, API_PASSWORD)
-        assert(@@sms_connector)
+        refute_instance_of(InfobipApi::InfobipApiError, @@sms_connector)
     end
 
     # use prefix test_b for any function that needs to be run after test_a_login
@@ -104,7 +104,7 @@ class InfobipApiTest < MiniTest::Unit::TestCase
         sms.from = 'InfobipApiRuby'
         sms.to = NUMBERS[0]
         sms.text = "Unit Testing: #{__method__}"
-        puts sms.inspect
-        puts @@sms_connector.simple_text_sms(sms).inspect
+        response = @@sms_connector.simple_text_sms(sms)
+        refute_instance_of(InfobipApi::InfobipApiError, response)
     end
 end

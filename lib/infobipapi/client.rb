@@ -39,7 +39,10 @@ module InfobipApi
 
             is_success, result = execute_POST('auth/1/session', params)
 
-            return fill_infobipapi_authentication(result, is_success)
+            filled = fill_infobipapi_authentication(result, is_success)
+            #puts ""
+            #puts "login: #{filled.inspect}"
+            return filled
         end
 
         def get_or_create_client_correlator(client_correlator=nil)
@@ -53,8 +56,8 @@ module InfobipApi
         def prepare_headers(request)
             request["User-Agent"] = "InfobipApi-#{InfobipApi::VERSION}"
             request["Content-Type"] = "application/json"
-            if @infobipapi_authentication and @infobipapi_authentication.ibsso_token
-                request['Authorization'] = "IBSSO #{@infobipapi_authentication.ibsso_token}"
+            if @infobipapi_authentication and @infobipapi_authentication.token
+                request['Authorization'] = "IBSSO #{@infobipapi_authentication.token}"
             else
                 auth_string = Base64.encode64("#{@username}:#{@password}").strip
                 request['Authorization'] = "Basic #{auth_string}"
@@ -120,6 +123,11 @@ module InfobipApi
             prepare_headers(request)
             response = http.request(request)
 
+            #puts ""
+            #puts "response: #{response.inspect}"
+            #puts "body: #{response.body}"
+            #puts ""
+
             return is_success(response), response.body
         end
 
@@ -136,12 +144,10 @@ module InfobipApi
         end
 
         def fill_infobipapi_authentication(json, is_success)
-            @infobipapi_authentication = convert_from_json(InfobipApiAuthentication, json, !is_success)
+            @infobipapi_authentication = convert_from_json(AuthenticationAnswer, json, !is_success)
 
-            @infobipapi_authentication.username = @username
-            @infobipapi_authentication.password = @password
 
-            @infobipapi_authentication.authenticated = @infobipapi_authentication.ibsso_token ? @infobipapi_authentication.ibsso_token.length > 0 : false
+            @infobipapi_authentication = nil if @infobipapi_authentication.token.nil? || @infobipapi_authentication.token.length == 0
 
             @infobipapi_authentication
         end
@@ -164,14 +170,9 @@ module InfobipApi
               :to => sms.to,
               :text => sms.text
             }
-            is_success, result = execute_POST(
-              "/sms/1/text",
-              params
-            )
+            is_success, result = execute_POST( "/sms/1/text", params )
 
-            binding.pry
-            if is_success then
-            convert_from_json(ResourceReference, result, !is_success)
+            convert_from_json(SimpletextSMSAnswer, result, !is_success)
         end
 
         def send_sms(sms)
