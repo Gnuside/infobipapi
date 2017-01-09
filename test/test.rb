@@ -99,7 +99,7 @@ class InfobipApiTest < MiniTest::Unit::TestCase
     end
 
     # use prefix test_b for any function that needs to be run after test_a_login
-    def test_b_single_text_sms
+    def test_b_single_text_sms_00001
         sms = InfobipApi::SimpleTextSMSRequest.new
         sms.from = 'InfobipApiRuby'
         sms.to = NUMBERS[0]
@@ -109,7 +109,7 @@ class InfobipApiTest < MiniTest::Unit::TestCase
         assert_equal(response.messages.length, 1)
     end
 
-    def test_b_multi_text_sms
+    def test_b_single_text_sms_0000n
         sms = InfobipApi::SimpleTextSMSRequest.new
         sms.from = 'InfobipApiRuby'
         sms.to = NUMBERS
@@ -119,7 +119,7 @@ class InfobipApiTest < MiniTest::Unit::TestCase
         assert_equal(response.messages.length, NUMBERS.length)
     end
 
-    def test_b_3000_text_sms
+    def test_b_single_text_sms_03000
         sms = InfobipApi::SimpleTextSMSRequest.new
         sms.from = 'InfobipApiRuby'
         sms.to = (NUMBERS[0].to_i..(NUMBERS[0].to_i + 2999)).to_a
@@ -129,7 +129,7 @@ class InfobipApiTest < MiniTest::Unit::TestCase
         assert_equal(response.messages.length, 3000)
     end
 
-    def test_b_10000_text_sms
+    def test_b_single_text_sms_10000
         sms = InfobipApi::SimpleTextSMSRequest.new
         sms.from = 'InfobipApiRuby'
         sms.to = (NUMBERS[0].to_i..(NUMBERS[0].to_i + 9999)).to_a
