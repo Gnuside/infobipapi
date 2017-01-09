@@ -164,13 +164,24 @@ module InfobipApi
             super(username, password, base_url)
         end
 
-        def simple_text_sms(sms)
+        # send single sms message to one or many destination addresses.
+        # cf: https://dev.infobip.com/docs/send-single-sms
+        # param fields names:
+        # - from: string
+        #   Represents sender ID and it can be alphanumeric or numeric. Alphanumeric sender ID length should be between 3 and 11 characters (Example: CompanyName). Numeric sender ID length should be between 3 and 14 characters.
+        # - to: `required` array of strings
+        #   Array of message destination addresses. If you want to send a message to one destination, a single String is supported instead of an Array. Destination addresses must be in international format (Example: 41793026727).
+        # - text: string
+        #   Text of the message that will be sent.
+        #   (Developper comment: chars must be 7bits or comportment is not predictable on the receiving phones)
+        #
+        def single_text_sms(sms)
             params = {
               :from => sms.from,
               :to => sms.to,
               :text => sms.text
             }
-            is_success, result = execute_POST( "/sms/1/text", params )
+            is_success, result = execute_POST( "/sms/1/text/single", params )
 
             convert_from_json(SimpletextSMSAnswer, result, !is_success)
         end

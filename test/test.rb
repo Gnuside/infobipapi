@@ -104,7 +104,7 @@ class InfobipApiTest < MiniTest::Unit::TestCase
         sms.from = 'InfobipApiRuby'
         sms.to = NUMBERS[0]
         sms.text = "Unit Testing: #{__method__}"
-        response = @@sms_connector.simple_text_sms(sms)
+        response = @@sms_connector.single_text_sms(sms)
         refute_instance_of(InfobipApi::InfobipApiError, response)
         assert_equal(response.messages.length, 1)
     end
@@ -114,7 +114,7 @@ class InfobipApiTest < MiniTest::Unit::TestCase
         sms.from = 'InfobipApiRuby'
         sms.to = NUMBERS
         sms.text = "Unit Testing: #{__method__}"
-        response = @@sms_connector.simple_text_sms(sms)
+        response = @@sms_connector.single_text_sms(sms)
         refute_instance_of(InfobipApi::InfobipApiError, response)
         assert_equal(response.messages.length, NUMBERS.length)
     end
@@ -124,7 +124,7 @@ class InfobipApiTest < MiniTest::Unit::TestCase
         sms.from = 'InfobipApiRuby'
         sms.to = (NUMBERS[0].to_i..(NUMBERS[0].to_i + 2999)).to_a
         sms.text = "Unit Testing: #{__method__}"
-        response = @@sms_connector.simple_text_sms(sms)
+        response = @@sms_connector.single_text_sms(sms)
         refute_instance_of(InfobipApi::InfobipApiError, response)
         assert_equal(response.messages.length, 3000)
     end
@@ -134,7 +134,7 @@ class InfobipApiTest < MiniTest::Unit::TestCase
         sms.from = 'InfobipApiRuby'
         sms.to = (NUMBERS[0].to_i..(NUMBERS[0].to_i + 9999)).to_a
         sms.text = "Unit Testing: #{__method__}"
-        response = @@sms_connector.simple_text_sms(sms)
+        response = @@sms_connector.single_text_sms(sms)
         refute_instance_of(InfobipApi::InfobipApiError, response)
         assert_equal(response.messages.length, 10000)
     end
