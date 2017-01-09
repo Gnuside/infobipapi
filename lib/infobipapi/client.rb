@@ -12,10 +12,6 @@ module InfobipApi
 
     class InfobipApiClient
 
-        # If true -- an exception will be thrown on error, otherwise, you have
-        # to check the is_success and exception methods on resulting objects.
-        attr_accessor :raise_exceptions
-
         def initialize(username, password, base_url=nil)
             @username = username
             @password = password
@@ -30,7 +26,6 @@ module InfobipApi
             end
 
             @infobipapi_authentication = nil
-            @raise_exceptions = true
 
             login()
         end
@@ -124,7 +119,6 @@ module InfobipApi
 
             prepare_headers(request)
             response = http.request(request)
-            puts "response = #{response.body}"
 
             return is_success(response), response.body
         end
@@ -153,14 +147,7 @@ module InfobipApi
         end
 
         def convert_from_json(classs, json, is_error)
-            result = Conversions.from_json(classs, json, is_error)
-
-            if @raise_exceptions and !result.is_success
-                raise "#{result.exception.message_id}: #{result.exception.text} [#{result.exception.variables}]"
-
-            end
-
-            result
+            Conversions.from_json(classs, json, is_error)
         end
 
     end
@@ -182,6 +169,8 @@ module InfobipApi
               params
             )
 
+            binding.pry
+            if is_success then
             convert_from_json(ResourceReference, result, !is_success)
         end
 
