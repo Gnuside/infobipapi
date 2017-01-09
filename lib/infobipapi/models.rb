@@ -6,15 +6,6 @@ require_relative 'objects'
 
 module InfobipApi
 
-    class InfobipApiAuthentication < InfobipApiModel
-
-        infobipapi_attr_accessor :username, FieldConversionRule.new()
-        infobipapi_attr_accessor :password, FieldConversionRule.new()
-        infobipapi_attr_accessor :ibsso_token, FieldConversionRule.new('token')
-        infobipapi_attr_accessor :authenticated, FieldConversionRule.new()
-        infobipapi_attr_accessor :verified, FieldConversionRule.new('login.verified | TODO')
-
-    end
 
     class InfobipApiError < InfobipApiModel
 
