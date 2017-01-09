@@ -138,4 +138,19 @@ class InfobipApiTest < MiniTest::Unit::TestCase
         refute_instance_of(InfobipApi::InfobipApiError, response)
         assert_equal(response.messages.length, 10000)
     end
+
+    def test_b_multiple_text_sms_00001
+        smss = []
+        NUMBERS.each { |num|
+          sms = InfobipApi::SimpleTextSMSRequest.new
+          sms.from = 'InfobipApiRuby'
+          sms.to = num
+          sms.text = "Unit Testing: #{__method__} for #{num}"
+          smss.push sms
+        }
+        response = @@sms_connector.multiple_text_sms(smss)
+        refute_instance_of(InfobipApi::InfobipApiError, response)
+        assert_equal(response.messages.length, smss.length)
+    end
+
 end

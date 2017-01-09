@@ -186,6 +186,34 @@ module InfobipApi
             convert_from_json(SimpletextSMSAnswer, result, !is_success)
         end
 
+        # send multiple sms message to one or many destination addresses.
+        # cf: https://dev.infobip.com/docs/send-multiple-sms
+        # param fields names, array of :
+        # - from: string
+        #   Represents sender ID and it can be alphanumeric or numeric. Alphanumeric sender ID length should be between 3 and 11 characters (Example: CompanyName). Numeric sender ID length should be between 3 and 14 characters.
+        # - to: `required` array of strings
+        #   Array of message destination addresses. If you want to send a message to one destination, a single String is supported instead of an Array. Destination addresses must be in international format (Example: 41793026727).
+        # - text: string
+        #   Text of the message that will be sent.
+        #   (Developper comment: chars must be 7bits or comportment is not predictable on the receiving phones)
+        #
+        def multiple_text_sms(smss)
+            params = {
+              :messages => []
+            }
+            smss.each { |sms|
+              params[:messages].push({
+                :from => sms.from,
+                :to => sms.to,
+                :text => sms.text
+              })
+            }
+
+            is_success, result = execute_POST( "/sms/1/text/multi", params )
+
+            convert_from_json(SimpletextSMSAnswer, result, !is_success)
+        end
+
     end
 
 end
