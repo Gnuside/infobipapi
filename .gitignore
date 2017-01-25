@@ -21,3 +21,4 @@ pkg
 *.iws
 .idea
 test-numbers.txt
+vendor/bundle
