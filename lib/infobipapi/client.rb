@@ -147,7 +147,8 @@ module InfobipApi
             @infobipapi_authentication = convert_from_json(AuthenticationAnswer, json, !is_success)
 
 
-            @infobipapi_authentication = nil if @infobipapi_authentication.token.nil? || @infobipapi_authentication.token.length == 0
+            @infobipapi_authentication = nil if @infobipapi_authentication.token.nil? \
+              || @infobipapi_authentication.token.length == 0
 
             @infobipapi_authentication
         end
@@ -212,6 +213,49 @@ module InfobipApi
             is_success, result = execute_POST( "/sms/1/text/multi", params )
 
             convert_from_json(SimpletextSMSAnswer, result, !is_success)
+        end
+
+        # .codepoints.map { |c| "%02x %02x" % [c / 256,c % 256] }.join " "
+
+        def compute_sms_usage(str)
+            # single SMS length per SMS (GSM7): 160
+            # multiple SMS length per SMS (GSM7): 153
+            # single SMS length per SMS (UCS-2): 70
+            # multiple SMS length per SMS (UCS-2): 67
+          sms_lengths = Hash.new
+          # ! has_unicode_char
+          sms_lengths[false] = Hash.new
+          sms_lengths[false][true] = 153 # need_more_than_one_sms
+          sms_lengths[false][false] = 160 # ! need_more_than_one_sms
+          # has_unicode_char
+          sms_lengths[true] = Hash.new
+          sms_lengths[true][true] = 67 # need_more_than_one_sms
+          sms_lengths[true][false] = 70 # ! need_more_than_one_sms
+          {
+              :single_gsm7 => 160,
+              :multi_gsm7 => 153,
+              :single_ucs2 => 70,
+              :multi_ucs2 => 67
+            }
+            has_unicode_char = false
+            need_more_than_one_sms = false
+            chars = str.codepoints
+            chars.each { |c|
+              if c >= 128 then
+                has_unicode_char = true
+                break
+              end
+            }
+            if has_unicode_char then
+              need_more_than_one_sms = chars.length > 70
+            else
+              need_more_than_one_sms = chars.length > 160
+            end
+            return {
+              :length => chars.length,
+              :length_by_sms => sms_lengths[has_unicode_char][need_more_than_one_sms],
+              :number_of_sms => (chars.length.to_f / sms_lengths[has_unicode_char][need_more_than_one_sms].to_f).ceil
+            }
         end
 
     end
