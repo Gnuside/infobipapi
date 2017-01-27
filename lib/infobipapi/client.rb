@@ -275,7 +275,7 @@ module InfobipApi
         #   Text of the message that will be sent.
         #   (Developper comment: chars must be 7bits or comportment is not predictable on the receiving phones)
         #
-        def send_utf8_sms(sms)
+        def single_utf8_sms(sms)
           usage = self.compute_sms_usage(sms.text)
           if usage[:format] == :gsm7 then
             params = {
@@ -300,6 +300,71 @@ module InfobipApi
           convert_from_json(SimpletextSMSAnswer, result, !is_success)
         end
 
+        # send multiple sms message to one or many destination addresses.
+        # TEXT in UTF-8 format if all chars are gsm7 encoding compatible then
+        # the SMS is sent with gsm7 encoding. Else it will be sent in Unicode
+        # binary format.
+        # cf: https://dev.infobip.com/docs/send-multiple-sms
+        # param fields names, array of :
+        # - from: string
+        #   Represents sender ID and it can be alphanumeric or numeric. Alphanumeric sender ID length should be between 3 and 11 characters (Example: CompanyName). Numeric sender ID length should be between 3 and 14 characters.
+        # - to: `required` array of strings
+        #   Array of message destination addresses. If you want to send a message to one destination, a single String is supported instead of an Array. Destination addresses must be in international format (Example: 41793026727).
+        # - text: string utf-8 encoded
+        #   Text of the message that will be sent.
+        #   (Developper comment: chars must be 7bits or comportment is not predictable on the receiving phones)
+        #
+        # Return an array of 2 results :
+        #   one for a /sms/1/text/multi query
+        #   second one for a /sms/1/binary/multi query
+        def multiple_utf8_sms(smss)
+            params = {
+              :text => {
+                :uri => "/sms/1/text/multi",
+                :messages => []
+              },
+              :binary => {
+                :uri => "/sms/1/binary/multi",
+                :messages => []
+              }
+            }
+            smss.each { |sms|
+              usage = self.compute_sms_usage(sms.text)
+              if usage[:format] == :gsm7 then
+                params[:text][:messages].push({
+                  :from => sms.from,
+                  :to => sms.to,
+                  :text => sms.text
+                })
+              else
+                params[:binary][:messages].push({
+                  :from => sms.from,
+                  :to => sms.to,
+                  :binary => {
+                    :hex => sms.text.force_encoding('utf-8').codepoints.map { |c| sprintf('%02x', c) },
+                    :dataCoding => 8,
+                    :esmClass => 0
+                  }
+                })
+              end
+            }
+
+            results = []
+            if params[:text][:messages].length > 0 then
+              is_success, result = execute_POST( params[:text][:uri] , params )
+              results.push(convert_from_json(SimpletextSMSAnswer, result, !is_success))
+            else
+              results.push(nil)
+            end
+
+            if params[:binary][:messages].length > 0 then
+              is_success, result = execute_POST( params[:binary][:uri] , params )
+              results.push(convert_from_json(SimpletextSMSAnswer, result, !is_success))
+            else
+              results.push(nil)
+            end
+            return results
+        end
     end
 
 end
