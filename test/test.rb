@@ -146,7 +146,7 @@ class InfobipApiTest < MiniTest::Unit::TestCase
           sms = InfobipApi::SimpleTextSMSRequest.new
           sms.from = 'InfobipApiRuby'
           sms.to = num
-          sms.text = "Unit Testing: #{__method__} for #{num}"
+          sms.text = "Unit Testing: #{__method__} for '#{num}'"
           smss.push sms
         }
         response = @@sms_connector.multiple_text_sms(smss)
@@ -161,9 +161,10 @@ class InfobipApiTest < MiniTest::Unit::TestCase
         "Bonjour, es-tu assoiffé ?"
       ].each { |message|
         usage = @@sms_connector.compute_sms_usage(message)
-        assert_equal(message.length, usage[:length], "Failed length on message #{message}")
-        assert_equal(160, usage[:length_by_sms], "Failed length by SMS on message #{message}")
-        assert_equal(1, usage[:number_of_sms], "Failed number of SMS on message #{message}")
+        assert_equal(:gsm7, usage[:format], "Failed to compute the right format on message '#{message}'")
+        assert_equal(message.length, usage[:length], "Failed length on message '#{message}'")
+        assert_equal(160, usage[:length_by_sms], "Failed length by SMS on message '#{message}'")
+        assert_equal(1, usage[:number_of_sms], "Failed number of SMS on message '#{message}'")
       }
     end
 
@@ -174,8 +175,9 @@ class InfobipApiTest < MiniTest::Unit::TestCase
         "Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ?"
       ].each { |message|
         usage = @@sms_connector.compute_sms_usage(message)
-        assert_equal(message.length, usage[:length], "Failed length on message #{message}")
-        assert_equal(153, usage[:length_by_sms], "Failed length by SMS on message #{message}")
+        assert_equal(:gsm7, usage[:format], "Failed to compute the right format on message '#{message}'")
+        assert_equal(message.length, usage[:length], "Failed length on message '#{message}'")
+        assert_equal(153, usage[:length_by_sms], "Failed length by SMS on message '#{message}'")
         assert_equal(
           (message.length.to_f / 153.0).ceil,
           usage[:number_of_sms],
@@ -194,21 +196,84 @@ class InfobipApiTest < MiniTest::Unit::TestCase
           "Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ?"
         ].each { |message|
           usage = @@sms_connector.compute_sms_usage(message)
-          assert_equal(message.length, usage[:length], "Failed length on message #{message}")
+          assert_equal(:gsm7, usage[:format], "Failed to compute the right format on message '#{message}'")
+          assert_equal(message.length, usage[:length], "Failed length on message '#{message}'")
           if message.length > 160 then
-            assert_equal(153, usage[:length_by_sms], "Failed length by SMS on message #{message}")
+            assert_equal(153, usage[:length_by_sms], "Failed length by SMS on message '#{message}'")
             assert_equal(
               (message.length.to_f / 153.0).ceil,
               usage[:number_of_sms],
-              "Failed number of SMS on message #{message}")
+              "Failed number of SMS on message '#{message}'")
           else
-            assert_equal(160, usage[:length_by_sms], "Failed length by SMS on message #{message}")
-            assert_equal(1, usage[:number_of_sms], "Failed number of SMS on message #{message}")
+            assert_equal(160, usage[:length_by_sms], "Failed length by SMS on message '#{message}'")
+            assert_equal(1, usage[:number_of_sms], "Failed number of SMS on message '#{message}'")
           end
           sms.text = message
           response = @@sms_connector.single_text_sms(sms)
           refute_instance_of(InfobipApi::InfobipApiError, response)
-          assert_equal(response.messages.length, 1)
+          assert_equal(1, response.messages.length)
+          assert_equal(response.messages[0].sms_count, usage[:number_of_sms], "Failed to match computed usage and API measurement on message '#{message}'")
+        }
+    end
+
+    def test_a_sms_usage_single_utf8
+      test_sms = [
+        "Hello č",
+        "Hello, are you ok ? č",
+        "Bonjour, es-tu assoiffé ? œŒ"
+      ].each { |message|
+        usage = @@sms_connector.compute_sms_usage(message)
+        assert_equal(:unicode, usage[:format], "Failed to compute the right format on message '#{message}'")
+        assert_equal(message.length, usage[:length], "Failed length on message '#{message}'")
+        assert_equal(70, usage[:length_by_sms], "Failed length by SMS on message '#{message}'")
+        assert_equal(1, usage[:number_of_sms], "Failed number of SMS on message '#{message}'")
+      }
+    end
+
+    def test_a_sms_usage_multi_utf8
+      test_sms = [
+        "Hellœ Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello ",
+        "Hellœ, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? ",
+        "Bœnjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ?"
+      ].each { |message|
+        usage = @@sms_connector.compute_sms_usage(message)
+        assert_equal(:unicode, usage[:format], "Failed to compute the right format on message '#{message}'")
+        assert_equal(message.length, usage[:length], "Failed length on message '#{message}'")
+        assert_equal(67, usage[:length_by_sms], "Failed length by SMS on message '#{message}'")
+        assert_equal(
+          (message.length.to_f / 67.0).ceil,
+          usage[:number_of_sms],
+          "Failed number of SMS on message #{message}")
+      }
+    end
+
+    def test_b_utf8_cmp_sms_usage_to_realone
+        sms = InfobipApi::SimpleTextSMSRequest.new
+        sms.from = 'InfobipApiRuby'
+        sms.to = NUMBERS[0]
+        sms.text = "Unit Testing: #{__method__}"
+        test_sms = [
+          "Hello œ Œ",
+          "Hello œ Œ, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? ",
+          "Bonjour œ Œ, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ?"
+        ].each { |message|
+          usage = @@sms_connector.compute_sms_usage(message)
+          assert_equal(:unicode, usage[:format], "Failed to compute the right format on message '#{message}'")
+          assert_equal(message.length, usage[:length], "Failed length on message '#{message}'")
+          if message.length > 70 then
+            assert_equal(67, usage[:length_by_sms], "Failed length by SMS on message '#{message}'")
+            assert_equal(
+              (message.length.to_f / 67.0).ceil,
+              usage[:number_of_sms],
+              "Failed number of SMS on message '#{message}'")
+          else
+            assert_equal(70, usage[:length_by_sms], "Failed length by SMS on message '#{message}'")
+            assert_equal(1, usage[:number_of_sms], "Failed number of SMS on message '#{message}'")
+          end
+          sms.text = message
+          response = @@sms_connector.single_text_sms(sms)
+          refute_instance_of(InfobipApi::InfobipApiError, response)
+          assert_equal(1, response.messages.length)
           assert_equal(response.messages[0].sms_count, usage[:number_of_sms], "Failed to match computed usage and API measurement on message '#{message}'")
         }
     end

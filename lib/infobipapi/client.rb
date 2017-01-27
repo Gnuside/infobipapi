@@ -218,10 +218,10 @@ module InfobipApi
         # .codepoints.map { |c| "%02x %02x" % [c / 256,c % 256] }.join " "
 
         def compute_sms_usage(str)
-            # single SMS length per SMS (GSM7): 160
-            # multiple SMS length per SMS (GSM7): 153
-            # single SMS length per SMS (UCS-2): 70
-            # multiple SMS length per SMS (UCS-2): 67
+          # single SMS length per SMS (GSM7): 160
+          # multiple SMS length per SMS (GSM7): 153
+          # single SMS length per SMS (UCS-2): 70
+          # multiple SMS length per SMS (UCS-2): 67
           sms_lengths = Hash.new
           # ! has_unicode_char
           sms_lengths[false] = Hash.new
@@ -247,14 +247,57 @@ module InfobipApi
             }
             if has_unicode_char then
               need_more_than_one_sms = str.length > 70
+              format = :unicode
             else
               need_more_than_one_sms = str.length > 160
+              format = :gsm7
             end
             return {
+              :format => format,
               :length => str.length,
               :length_by_sms => sms_lengths[has_unicode_char][need_more_than_one_sms],
               :number_of_sms => (str.length.to_f / sms_lengths[has_unicode_char][need_more_than_one_sms].to_f).ceil
             }
+        end
+
+        # send single sms message to one or many destination addresses.
+        # TEXT in UTF-8 format if all chars are gsm7 encoding compatible then
+        # the SMS is sent with gsm7 encoding. Else it will be sent in Unicode
+        # binary format.
+        # cf: https://dev.infobip.com/docs/send-single-sms
+        # cf: https://dev.infobip.com/docs/send-single-binary-sms
+        # param fields names:
+        # - from: string
+        #   Represents sender ID and it can be alphanumeric or numeric. Alphanumeric sender ID length should be between 3 and 11 characters (Example: CompanyName). Numeric sender ID length should be between 3 and 14 characters.
+        # - to: `required` array of strings
+        #   Array of message destination addresses. If you want to send a message to one destination, a single String is supported instead of an Array. Destination addresses must be in international format (Example: 41793026727).
+        # - text: string utf-8 encoded
+        #   Text of the message that will be sent.
+        #   (Developper comment: chars must be 7bits or comportment is not predictable on the receiving phones)
+        #
+        def send_utf8_sms(sms)
+          usage = self.compute_sms_usage(sms.text)
+          if usage[:format] == :gsm7 then
+            params = {
+              :from => sms.from,
+              :to => sms.to,
+              :text => sms.text
+            }
+            uri = "/sms/1/text/single"
+          else
+            params = {
+              :from => sms.from,
+              :to => sms.to,
+              :binary => {
+                :hex => sms.text.force_encoding('utf-8').codepoints.map { |c| sprintf('%02x', c) },
+                :dataCoding => 8,
+                :esmClass => 0
+              }
+            }
+            uri = "/sms/1/binary/single"
+          end
+          is_success, result = execute_POST(uri , params )
+          convert_from_json(SimpletextSMSAnswer, result, !is_success)
         end
 
     end
