@@ -239,22 +239,21 @@ module InfobipApi
             }
             has_unicode_char = false
             need_more_than_one_sms = false
-            chars = str.codepoints
-            chars.each { |c|
-              if c >= 128 then
+            str.each_char { |c|
+              if not Utils.in_gsm7_set?(c) then
                 has_unicode_char = true
                 break
               end
             }
             if has_unicode_char then
-              need_more_than_one_sms = chars.length > 70
+              need_more_than_one_sms = str.length > 70
             else
-              need_more_than_one_sms = chars.length > 160
+              need_more_than_one_sms = str.length > 160
             end
             return {
-              :length => chars.length,
+              :length => str.length,
               :length_by_sms => sms_lengths[has_unicode_char][need_more_than_one_sms],
-              :number_of_sms => (chars.length.to_f / sms_lengths[has_unicode_char][need_more_than_one_sms].to_f).ceil
+              :number_of_sms => (str.length.to_f / sms_lengths[has_unicode_char][need_more_than_one_sms].to_f).ceil
             }
         end
 

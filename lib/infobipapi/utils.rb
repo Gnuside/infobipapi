@@ -111,7 +111,9 @@ module InfobipApi
             get_random_string(length, 'qwertzuiopasdfghjklyxcvbnm123456789')
         end
 
-        def self.
+        def self.in_gsm7_set?(c)
+            @@gsm7_set.has_key?(c)
+        end
 
     end
 

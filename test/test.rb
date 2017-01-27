@@ -119,25 +119,26 @@ class InfobipApiTest < MiniTest::Unit::TestCase
         assert_equal(response.messages.length, NUMBERS.length)
     end
 
-    def test_b_single_text_sms_03000
-        sms = InfobipApi::SimpleTextSMSRequest.new
-        sms.from = 'InfobipApiRuby'
-        sms.to = (NUMBERS[0].to_i..(NUMBERS[0].to_i + 2999)).to_a
-        sms.text = "Unit Testing: #{__method__}"
-        response = @@sms_connector.single_text_sms(sms)
-        refute_instance_of(InfobipApi::InfobipApiError, response)
-        assert_equal(response.messages.length, 3000)
-    end
+#    def test_b_single_text_sms_03000
+#        sms = InfobipApi::SimpleTextSMSRequest.new
+#        sms.from = 'InfobipApiRuby'
+#        sms.to = (NUMBERS[0].to_i..(NUMBERS[0].to_i + 2999)).to_a
+#        sms.text = "Unit Testing: #{__method__}"
+#        response = @@sms_connector.single_text_sms(sms)
+#        refute_instance_of(InfobipApi::InfobipApiError, response)
+#        assert_equal(response.messages.length, 3000)
+#    end
 
-    def test_b_single_text_sms_10000
-        sms = InfobipApi::SimpleTextSMSRequest.new
-        sms.from = 'InfobipApiRuby'
-        sms.to = (NUMBERS[0].to_i..(NUMBERS[0].to_i + 9999)).to_a
-        sms.text = "Unit Testing: #{__method__}"
-        response = @@sms_connector.single_text_sms(sms)
-        refute_instance_of(InfobipApi::InfobipApiError, response)
-        assert_equal(response.messages.length, 10000)
-    end
+
+#    def test_b_single_text_sms_10000
+#        sms = InfobipApi::SimpleTextSMSRequest.new
+#        sms.from = 'InfobipApiRuby'
+#        sms.to = (NUMBERS[0].to_i..(NUMBERS[0].to_i + 9999)).to_a
+#        sms.text = "Unit Testing: #{__method__}"
+#        response = @@sms_connector.single_text_sms(sms)
+#        refute_instance_of(InfobipApi::InfobipApiError, response)
+#        assert_equal(response.messages.length, 10000)
+#    end
 
     def test_b_multiple_text_sms_00001
         smss = []
@@ -180,6 +181,36 @@ class InfobipApiTest < MiniTest::Unit::TestCase
           usage[:number_of_sms],
           "Failed number of SMS on message #{message}")
       }
+    end
+
+    def test_b_gsm7_cmp_sms_usage_to_realone
+        sms = InfobipApi::SimpleTextSMSRequest.new
+        sms.from = 'InfobipApiRuby'
+        sms.to = NUMBERS[0]
+        sms.text = "Unit Testing: #{__method__}"
+        test_sms = [
+          "Hello",
+          "Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? Hello, are you ok ? ",
+          "Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ? Bonjour, es-tu assoiffé ?"
+        ].each { |message|
+          usage = @@sms_connector.compute_sms_usage(message)
+          assert_equal(message.length, usage[:length], "Failed length on message #{message}")
+          if message.length > 160 then
+            assert_equal(153, usage[:length_by_sms], "Failed length by SMS on message #{message}")
+            assert_equal(
+              (message.length.to_f / 153.0).ceil,
+              usage[:number_of_sms],
+              "Failed number of SMS on message #{message}")
+          else
+            assert_equal(160, usage[:length_by_sms], "Failed length by SMS on message #{message}")
+            assert_equal(1, usage[:number_of_sms], "Failed number of SMS on message #{message}")
+          end
+          sms.text = message
+          response = @@sms_connector.single_text_sms(sms)
+          refute_instance_of(InfobipApi::InfobipApiError, response)
+          assert_equal(response.messages.length, 1)
+          assert_equal(response.messages[0].sms_count, usage[:number_of_sms], "Failed to match computed usage and API measurement on message '#{message}'")
+        }
     end
 
 end
