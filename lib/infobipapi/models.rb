@@ -68,7 +68,7 @@ module InfobipApi
 
     end
 
-    class SimpletextSMSAnswer < InfobipApiModel
+    class SimpleSMSAnswer < InfobipApiModel
       infobipapi_attr_accessor :messages, ObjectArrayConversionRule.new(MessageAnswer, 'messages')
     end
 

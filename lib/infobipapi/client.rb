@@ -109,6 +109,7 @@ module InfobipApi
                 request = Net::HTTP::Get.new("#{uri.request_uri}?#{urlencode(params)}")
             elsif http_method == 'POST'
               request = Net::HTTP::Post.new(uri.request_uri)
+              #binding.pry if params.has_key?(:binary)
               request.body = params.to_json
             end
 
@@ -184,7 +185,7 @@ module InfobipApi
             }
             is_success, result = execute_POST( "/sms/1/text/single", params )
 
-            convert_from_json(SimpletextSMSAnswer, result, !is_success)
+            convert_from_json(SimpleSMSAnswer, result, !is_success)
         end
 
         # send multiple sms message to one or many destination addresses.
@@ -212,7 +213,7 @@ module InfobipApi
 
             is_success, result = execute_POST( "/sms/1/text/multi", params )
 
-            convert_from_json(SimpletextSMSAnswer, result, !is_success)
+            convert_from_json(SimpleSMSAnswer, result, !is_success)
         end
 
         # .codepoints.map { |c| "%02x %02x" % [c / 256,c % 256] }.join " "
@@ -285,11 +286,12 @@ module InfobipApi
             }
             uri = "/sms/1/text/single"
           else
+            text_array = sms.text.force_encoding('utf-8').codepoints.map { |c| sprintf('%02x', c) }
             params = {
               :from => sms.from,
               :to => sms.to,
               :binary => {
-                :hex => sms.text.force_encoding('utf-8').codepoints.map { |c| sprintf('%02x', c) },
+                :hex => text_array.join(' '),
                 :dataCoding => 8,
                 :esmClass => 0
               }
@@ -297,7 +299,7 @@ module InfobipApi
             uri = "/sms/1/binary/single"
           end
           is_success, result = execute_POST(uri , params )
-          convert_from_json(SimpletextSMSAnswer, result, !is_success)
+          convert_from_json(SimpleSMSAnswer, result, !is_success)
         end
 
         # send multiple sms message to one or many destination addresses.
@@ -315,8 +317,8 @@ module InfobipApi
         #   (Developper comment: chars must be 7bits or comportment is not predictable on the receiving phones)
         #
         # Return an array of 2 results :
-        #   one for a /sms/1/text/multi query
-        #   second one for a /sms/1/binary/multi query
+        #   one for a /sms/1/text/multi query (nil if none is sent as text)
+        #   second one for a /sms/1/binary/multi query (nil if none is sent as binary)
         def multiple_utf8_sms(smss)
             params = {
               :text => {
@@ -337,11 +339,12 @@ module InfobipApi
                   :text => sms.text
                 })
               else
+                text_array = sms.text.force_encoding('utf-8').codepoints.map { |c| sprintf('%02x', c) }
                 params[:binary][:messages].push({
                   :from => sms.from,
                   :to => sms.to,
                   :binary => {
-                    :hex => sms.text.force_encoding('utf-8').codepoints.map { |c| sprintf('%02x', c) },
+                    :hex => text_array.join(' '),
                     :dataCoding => 8,
                     :esmClass => 0
                   }
@@ -351,15 +354,15 @@ module InfobipApi
 
             results = []
             if params[:text][:messages].length > 0 then
-              is_success, result = execute_POST( params[:text][:uri] , params )
-              results.push(convert_from_json(SimpletextSMSAnswer, result, !is_success))
+              is_success, result = execute_POST( params[:text][:uri] , params[:text][:messages] )
+              results.push(convert_from_json(SimpleSMSAnswer, result, !is_success))
             else
               results.push(nil)
             end
 
             if params[:binary][:messages].length > 0 then
-              is_success, result = execute_POST( params[:binary][:uri] , params )
-              results.push(convert_from_json(SimpletextSMSAnswer, result, !is_success))
+              is_success, result = execute_POST( params[:binary][:uri] , params[:binary][:messages] )
+              results.push(convert_from_json(SimpleSMSAnswer, result, !is_success))
             else
               results.push(nil)
             end
