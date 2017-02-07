@@ -218,4 +218,57 @@ module InfobipApi
 
     end
 
+    # ----------------------------------------------------------------------------------------------------
+    # Message delivery reports:
+    # ----------------------------------------------------------------------------------------------------
+
+    class DeliveryReportPrice < InfobipApiModel
+
+        infobipapi_attr_accessor :price_per_message, FieldConversionRule.new('pricePerMessage')
+        infobipapi_attr_accessor :currency, FieldConversionRule.new()
+
+    end
+
+    class DeliveryReportStatus < InfobipApiModel
+
+        infobipapi_attr_accessor :id, FieldConversionRule.new()
+        infobipapi_attr_accessor :group_id, FieldConversionRule.new('groupId')
+        infobipapi_attr_accessor :group_name, FieldConversionRule.new('groupName')
+        infobipapi_attr_accessor :name, FieldConversionRule.new()
+        infobipapi_attr_accessor :description, FieldConversionRule.new()
+
+    end
+
+    class DeliveryReportError < InfobipApiModel
+
+        infobipapi_attr_accessor :group_id, FieldConversionRule.new('groupId')
+        infobipapi_attr_accessor :group_name, FieldConversionRule.new('groupName')
+        infobipapi_attr_accessor :id, FieldConversionRule.new()
+        infobipapi_attr_accessor :name, FieldConversionRule.new()
+        infobipapi_attr_accessor :description, FieldConversionRule.new()
+        infobipapi_attr_accessor :permanent, FieldConversionRule.new()
+
+    end
+
+    class DeliveryReport < InfobipApiModel
+
+        infobipapi_attr_accessor :bulk_id, FieldConversionRule.new('bulkId')
+        infobipapi_attr_accessor :message_id, FieldConversionRule.new('messageId')
+        infobipapi_attr_accessor :to, FieldConversionRule.new()
+        infobipapi_attr_accessor :sent_at, FieldConversionRule.new('sentAt')
+        infobipapi_attr_accessor :done_at, FieldConversionRule.new('doneAt')
+        infobipapi_attr_accessor :sms_count, FieldConversionRule.new('smsCount')
+        infobipapi_attr_accessor :mcc_mnc, FieldConversionRule.new('mccMnc')
+        infobipapi_attr_accessor :price, ObjectFieldConverter.new(DeliveryReportPrice, 'price')
+        infobipapi_attr_accessor :status, ObjectFieldConverter.new(DeliveryReportPrice, 'status')
+        infobipapi_attr_accessor :error, ObjectFieldConverter.new(DeliveryReportPrice, 'error')
+
+    end
+
+    class DeliveryReportList < InfobipApiModel
+
+        infobipapi_attr_accessor :results, ObjectArrayConversionRule.new()
+    end
+
+
 end
