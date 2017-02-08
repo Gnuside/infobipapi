@@ -1,3 +1,5 @@
+# vim: set sw=4 ts=4 et :
+
 =begin
 require_relative 'rubygems'
 require_relative 'ruby-debug'

@@ -1,3 +1,5 @@
+# vim: set sw=4 ts=4 et :
+
 #require 'pry'
 require 'net/http'
 require 'net/https'
@@ -367,6 +369,24 @@ module InfobipApi
               results.push(nil)
             end
             return results
+        end
+
+        # Get delivery reports
+        # cf: https://dev.infobip.com/docs/delivery-reports
+        # parm fields names :
+        # - bulkId: string
+        #   The ID that uniquely identifies the request. Bulk ID will be received only when you send a message to more than one destination address.
+        # - messageId: string
+        # The ID that uniquely identifies the message sent.
+        # - limit: string
+        #   Number of returned delivery reports. Default value is 50. Max number per request is 10000.
+        def delivery_reports(params)
+            req = {} # safety parameters treatment
+            req[:bulkId] = params[:bulkId] if params.has_key?:bulkId
+            req[:messageId] = params[:messageId] if params.has_key?:messageId
+            req[:limit] = params[:limit] if params.has_key?:limit
+            is_success, result = execute_GET("/sms/1/reports", req)
+            convert_from_json(DeliveryReportList,result, !is_success)
         end
     end
 

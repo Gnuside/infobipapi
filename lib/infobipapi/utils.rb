@@ -1,3 +1,5 @@
+# vim: set sw=4 ts=4 et :
+
 #require 'pry'
 require 'json'
 require 'socket'
