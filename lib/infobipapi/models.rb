@@ -71,7 +71,8 @@ module InfobipApi
     end
 
     class SimpleSMSAnswer < InfobipApiModel
-      infobipapi_attr_accessor :messages, ObjectArrayConversionRule.new(MessageAnswer, 'messages')
+        infobipapi_attr_accessor :bulk_id, FieldConversionRule.new(:bulkId)
+        infobipapi_attr_accessor :messages, ObjectArrayConversionRule.new(MessageAnswer, 'messages')
     end
 
     class AdvancedTextSMSRequest < SimpleTextSMSRequest
@@ -262,14 +263,14 @@ module InfobipApi
         infobipapi_attr_accessor :sms_count, FieldConversionRule.new('smsCount')
         infobipapi_attr_accessor :mcc_mnc, FieldConversionRule.new('mccMnc')
         infobipapi_attr_accessor :price, ObjectFieldConverter.new(DeliveryReportPrice, 'price')
-        infobipapi_attr_accessor :status, ObjectFieldConverter.new(DeliveryReportPrice, 'status')
-        infobipapi_attr_accessor :error, ObjectFieldConverter.new(DeliveryReportPrice, 'error')
+        infobipapi_attr_accessor :status, ObjectFieldConverter.new(DeliveryReportStatus, 'status')
+        infobipapi_attr_accessor :error, ObjectFieldConverter.new(DeliveryReportError, 'error')
 
     end
 
     class DeliveryReportList < InfobipApiModel
 
-        infobipapi_attr_accessor :results, ObjectArrayConversionRule.new()
+        infobipapi_attr_accessor :results, ObjectArrayConversionRule.new(DeliveryReport, 'results')
     end
 
 

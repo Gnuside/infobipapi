@@ -431,4 +431,17 @@ class InfobipApiTest < MiniTest::Unit::TestCase
       }
     end
 
+    def test_b_get_delivery_reports
+        sms = InfobipApi::SimpleTextSMSRequest.new
+        sms.from = 'InfobipApiRuby'
+        sms.to = NUMBERS
+        sms.text = "Unit Testing: #{__method__}"
+        response = @@sms_connector.single_utf8_sms(sms)
+        refute_instance_of(InfobipApi::InfobipApiError, response)
+        assert_instance_of(InfobipApi::SimpleSMSAnswer, response)
+        dr = @@sms_connector.delivery_reports({:bulkId => response.bulk_id})
+        refute_instance_of(InfobipApi::InfobipApiError, dr)
+        assert_instance_of(InfobipApi::DeliveryReportList, dr)
+    end
+
 end
