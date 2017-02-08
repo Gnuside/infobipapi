@@ -1,3 +1,5 @@
+# vim: set sw=4 ts=4 et :
+
 =begin
 require_relative 'rubygems'
 require_relative 'ruby-debug'
@@ -128,14 +130,11 @@ module InfobipApi
             object = classs.new
 
             Conversions.fill_from_json(object, json, is_error)
-
-            object
         end
 
         def self.fill_from_json(object, json, is_error = nil)
             if is_error
-                object.exception = Conversions.from_json(InfobipApiError, json, false)
-                return
+                return Conversions.from_json(InfobipApiError, json, false)
             end
 
             json = JSONUtils.get_json(json)
@@ -145,6 +144,7 @@ module InfobipApi
                 value = conversion_rule.from_json(json_value)
                 object.instance_variable_set("@#{conversion_rule.object_field_name}", value)
             end
+            object
         end
 
         def self.to_json

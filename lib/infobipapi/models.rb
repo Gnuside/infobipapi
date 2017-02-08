@@ -1,3 +1,5 @@
+# vim: set sw=4 ts=4 et :
+
 require_relative 'objects'
 
 # ----------------------------------------------------------------------------------------------------
@@ -6,15 +8,6 @@ require_relative 'objects'
 
 module InfobipApi
 
-    class InfobipApiAuthentication < InfobipApiModel
-
-        infobipapi_attr_accessor :username, FieldConversionRule.new()
-        infobipapi_attr_accessor :password, FieldConversionRule.new()
-        infobipapi_attr_accessor :ibsso_token, FieldConversionRule.new('token')
-        infobipapi_attr_accessor :authenticated, FieldConversionRule.new()
-        infobipapi_attr_accessor :verified, FieldConversionRule.new('login.verified | TODO')
-
-    end
 
     class InfobipApiError < InfobipApiModel
 
@@ -35,11 +28,37 @@ module InfobipApi
     # Messaging:
     # ----------------------------------------------------------------------------------------------------
 
+
+    class AuthenticationAnswer < InfobipApiModel
+
+        infobipapi_attr_accessor :token, FieldConversionRule.new
+
+    end
+
     class Language < InfobipApiModel
 
       infobipapi_attr_accessor :language_code, FieldConversionRule.new(:languageCode)
       infobipapi_attr_accessor :use_single_shift, FieldConversionRule.new(:useSingleShift)
       infobipapi_attr_accessor :use_locking_shift, FieldConversionRule.new(:useLockingShift)
+
+    end
+
+    class StatusAnswer < InfobipApiModel
+
+        infobipapi_attr_accessor :group_id, FieldConversionRule.new(:groupId)
+        infobipapi_attr_accessor :group_name, FieldConversionRule.new(:groupName)
+        infobipapi_attr_accessor :id, FieldConversionRule.new()
+        infobipapi_attr_accessor :name, FieldConversionRule.new()
+        infobipapi_attr_accessor :descripton, FieldConversionRule.new()
+
+    end
+
+    class MessageAnswer < InfobipApiModel
+
+      infobipapi_attr_accessor :to, FieldConversionRule.new()
+      infobipapi_attr_accessor :status, ObjectFieldConverter.new(StatusAnswer, 'status')
+      infobipapi_attr_accessor :sms_count, FieldConversionRule.new(:smsCount)
+      infobipapi_attr_accessor :message_id, FieldConversionRule.new(:messageId)
 
     end
 
@@ -49,6 +68,11 @@ module InfobipApi
         infobipapi_attr_accessor :to, FieldConversionRule.new()
         infobipapi_attr_accessor :text, FieldConversionRule.new()
 
+    end
+
+    class SimpleSMSAnswer < InfobipApiModel
+        infobipapi_attr_accessor :bulk_id, FieldConversionRule.new(:bulkId)
+        infobipapi_attr_accessor :messages, ObjectArrayConversionRule.new(MessageAnswer, 'messages')
     end
 
     class AdvancedTextSMSRequest < SimpleTextSMSRequest
@@ -196,5 +220,58 @@ module InfobipApi
         infobipapi_attr_accessor :currency, ObjectFieldConverter.new(Currency)
 
     end
+
+    # ----------------------------------------------------------------------------------------------------
+    # Message delivery reports:
+    # ----------------------------------------------------------------------------------------------------
+
+    class DeliveryReportPrice < InfobipApiModel
+
+        infobipapi_attr_accessor :price_per_message, FieldConversionRule.new('pricePerMessage')
+        infobipapi_attr_accessor :currency, FieldConversionRule.new()
+
+    end
+
+    class DeliveryReportStatus < InfobipApiModel
+
+        infobipapi_attr_accessor :id, FieldConversionRule.new()
+        infobipapi_attr_accessor :group_id, FieldConversionRule.new('groupId')
+        infobipapi_attr_accessor :group_name, FieldConversionRule.new('groupName')
+        infobipapi_attr_accessor :name, FieldConversionRule.new()
+        infobipapi_attr_accessor :description, FieldConversionRule.new()
+
+    end
+
+    class DeliveryReportError < InfobipApiModel
+
+        infobipapi_attr_accessor :group_id, FieldConversionRule.new('groupId')
+        infobipapi_attr_accessor :group_name, FieldConversionRule.new('groupName')
+        infobipapi_attr_accessor :id, FieldConversionRule.new()
+        infobipapi_attr_accessor :name, FieldConversionRule.new()
+        infobipapi_attr_accessor :description, FieldConversionRule.new()
+        infobipapi_attr_accessor :permanent, FieldConversionRule.new()
+
+    end
+
+    class DeliveryReport < InfobipApiModel
+
+        infobipapi_attr_accessor :bulk_id, FieldConversionRule.new('bulkId')
+        infobipapi_attr_accessor :message_id, FieldConversionRule.new('messageId')
+        infobipapi_attr_accessor :to, FieldConversionRule.new()
+        infobipapi_attr_accessor :sent_at, FieldConversionRule.new('sentAt')
+        infobipapi_attr_accessor :done_at, FieldConversionRule.new('doneAt')
+        infobipapi_attr_accessor :sms_count, FieldConversionRule.new('smsCount')
+        infobipapi_attr_accessor :mcc_mnc, FieldConversionRule.new('mccMnc')
+        infobipapi_attr_accessor :price, ObjectFieldConverter.new(DeliveryReportPrice, 'price')
+        infobipapi_attr_accessor :status, ObjectFieldConverter.new(DeliveryReportStatus, 'status')
+        infobipapi_attr_accessor :error, ObjectFieldConverter.new(DeliveryReportError, 'error')
+
+    end
+
+    class DeliveryReportList < InfobipApiModel
+
+        infobipapi_attr_accessor :results, ObjectArrayConversionRule.new(DeliveryReport, 'results')
+    end
+
 
 end

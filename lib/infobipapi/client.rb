@@ -1,3 +1,5 @@
+# vim: set sw=4 ts=4 et :
+
 #require 'pry'
 require 'net/http'
 require 'net/https'
@@ -11,10 +13,6 @@ require_relative 'models'
 module InfobipApi
 
     class InfobipApiClient
-
-        # If true -- an exception will be thrown on error, otherwise, you have
-        # to check the is_success and exception methods on resulting objects.
-        attr_accessor :raise_exceptions
 
         def initialize(username, password, base_url=nil)
             @username = username
@@ -30,7 +28,6 @@ module InfobipApi
             end
 
             @infobipapi_authentication = nil
-            @raise_exceptions = true
 
             login()
         end
@@ -44,7 +41,10 @@ module InfobipApi
 
             is_success, result = execute_POST('auth/1/session', params)
 
-            return fill_infobipapi_authentication(result, is_success)
+            filled = fill_infobipapi_authentication(result, is_success)
+            #puts ""
+            #puts "login: #{filled.inspect}"
+            return filled
         end
 
         def get_or_create_client_correlator(client_correlator=nil)
@@ -58,8 +58,8 @@ module InfobipApi
         def prepare_headers(request)
             request["User-Agent"] = "InfobipApi-#{InfobipApi::VERSION}"
             request["Content-Type"] = "application/json"
-            if @infobipapi_authentication and @infobipapi_authentication.ibsso_token
-                request['Authorization'] = "IBSSO #{@infobipapi_authentication.ibsso_token}"
+            if @infobipapi_authentication and @infobipapi_authentication.token
+                request['Authorization'] = "IBSSO #{@infobipapi_authentication.token}"
             else
                 auth_string = Base64.encode64("#{@username}:#{@password}").strip
                 request['Authorization'] = "Basic #{auth_string}"
@@ -111,6 +111,7 @@ module InfobipApi
                 request = Net::HTTP::Get.new("#{uri.request_uri}?#{urlencode(params)}")
             elsif http_method == 'POST'
               request = Net::HTTP::Post.new(uri.request_uri)
+              #binding.pry if params.has_key?(:binary)
               request.body = params.to_json
             end
 
@@ -124,7 +125,11 @@ module InfobipApi
 
             prepare_headers(request)
             response = http.request(request)
-            puts "response = #{response.body}"
+
+            #puts ""
+            #puts "response: #{response.inspect}"
+            #puts "body: #{response.body}"
+            #puts ""
 
             return is_success(response), response.body
         end
@@ -142,25 +147,17 @@ module InfobipApi
         end
 
         def fill_infobipapi_authentication(json, is_success)
-            @infobipapi_authentication = convert_from_json(InfobipApiAuthentication, json, !is_success)
+            @infobipapi_authentication = convert_from_json(AuthenticationAnswer, json, !is_success)
 
-            @infobipapi_authentication.username = @username
-            @infobipapi_authentication.password = @password
 
-            @infobipapi_authentication.authenticated = @infobipapi_authentication.ibsso_token ? @infobipapi_authentication.ibsso_token.length > 0 : false
+            @infobipapi_authentication = nil if @infobipapi_authentication.token.nil? \
+              || @infobipapi_authentication.token.length == 0
 
             @infobipapi_authentication
         end
 
         def convert_from_json(classs, json, is_error)
-            result = Conversions.from_json(classs, json, is_error)
-
-            if @raise_exceptions and !result.is_success
-                raise "#{result.exception.message_id}: #{result.exception.text} [#{result.exception.variables}]"
-
-            end
-
-            result
+            Conversions.from_json(classs, json, is_error)
         end
 
     end
@@ -171,163 +168,226 @@ module InfobipApi
             super(username, password, base_url)
         end
 
-        def simple_text_sms(sms)
+        # send single sms message to one or many destination addresses.
+        # cf: https://dev.infobip.com/docs/send-single-sms
+        # param fields names:
+        # - from: string
+        #   Represents sender ID and it can be alphanumeric or numeric. Alphanumeric sender ID length should be between 3 and 11 characters (Example: CompanyName). Numeric sender ID length should be between 3 and 14 characters.
+        # - to: `required` array of strings
+        #   Array of message destination addresses. If you want to send a message to one destination, a single String is supported instead of an Array. Destination addresses must be in international format (Example: 41793026727).
+        # - text: string
+        #   Text of the message that will be sent.
+        #   (Developper comment: chars must be 7bits or comportment is not predictable on the receiving phones)
+        #
+        def single_text_sms(sms)
             params = {
               :from => sms.from,
               :to => sms.to,
               :text => sms.text
             }
-            is_success, result = execute_POST(
-              "/sms/1/text",
-              params
-            )
+            is_success, result = execute_POST( "/sms/1/text/single", params )
 
-            convert_from_json(ResourceReference, result, !is_success)
+            convert_from_json(SimpleSMSAnswer, result, !is_success)
         end
 
-        def send_sms(sms)
-            client_correlator = sms.client_correlator
-            if not client_correlator
-                client_correlator = Utils.get_random_alphanumeric_string()
-            end
-
+        # send multiple sms message to one or many destination addresses.
+        # cf: https://dev.infobip.com/docs/send-multiple-sms
+        # param fields names, array of :
+        # - from: string
+        #   Represents sender ID and it can be alphanumeric or numeric. Alphanumeric sender ID length should be between 3 and 11 characters (Example: CompanyName). Numeric sender ID length should be between 3 and 14 characters.
+        # - to: `required` array of strings
+        #   Array of message destination addresses. If you want to send a message to one destination, a single String is supported instead of an Array. Destination addresses must be in international format (Example: 41793026727).
+        # - text: string
+        #   Text of the message that will be sent.
+        #   (Developper comment: chars must be 7bits or comportment is not predictable on the receiving phones)
+        #
+        def multiple_text_sms(smss)
             params = {
-                'senderAddress' => sms.sender_address,
-                'address' => sms.address,
-                'message' => sms.message,
-                'clientCorrelator' => client_correlator,
-                'senderName' => "tel:#{sms.sender_address}"
+              :messages => []
+            }
+            smss.each { |sms|
+              params[:messages].push({
+                :from => sms.from,
+                :to => sms.to,
+                :text => sms.text
+              })
             }
 
-            if sms.notify_url
-                params['notifyURL'] = sms.notify_url
+            is_success, result = execute_POST( "/sms/1/text/multi", params )
+
+            convert_from_json(SimpleSMSAnswer, result, !is_success)
+        end
+
+        # .codepoints.map { |c| "%02x %02x" % [c / 256,c % 256] }.join " "
+
+        def compute_sms_usage(str)
+          # single SMS length per SMS (GSM7): 160
+          # multiple SMS length per SMS (GSM7): 153
+          # single SMS length per SMS (UCS-2): 70
+          # multiple SMS length per SMS (UCS-2): 67
+          sms_lengths = Hash.new
+          # ! has_unicode_char
+          sms_lengths[false] = Hash.new
+          sms_lengths[false][true] = 153 # need_more_than_one_sms
+          sms_lengths[false][false] = 160 # ! need_more_than_one_sms
+          # has_unicode_char
+          sms_lengths[true] = Hash.new
+          sms_lengths[true][true] = 67 # need_more_than_one_sms
+          sms_lengths[true][false] = 70 # ! need_more_than_one_sms
+          {
+              :single_gsm7 => 160,
+              :multi_gsm7 => 153,
+              :single_ucs2 => 70,
+              :multi_ucs2 => 67
+            }
+            has_unicode_char = false
+            need_more_than_one_sms = false
+            str.each_char { |c|
+              if not Utils.in_gsm7_set?(c) then
+                has_unicode_char = true
+                break
+              end
+            }
+            if has_unicode_char then
+              need_more_than_one_sms = str.length > 70
+              format = :unicode
+            else
+              need_more_than_one_sms = str.length > 160
+              format = :gsm7
             end
-            if sms.callback_data
-                params['callbackData'] = sms.callback_data
-            end
-            if sms.language
-              params['language'] = {
-                  'languageCode' => sms.language.language_code,
-                  'useSingleShift' => sms.language.use_single_shift,
-                  'useLockingShift' => sms.language.use_locking_shift
+            return {
+              :format => format,
+              :length => str.length,
+              :length_by_sms => sms_lengths[has_unicode_char][need_more_than_one_sms],
+              :number_of_sms => (str.length.to_f / sms_lengths[has_unicode_char][need_more_than_one_sms].to_f).ceil
+            }
+        end
+
+        # send single sms message to one or many destination addresses.
+        # TEXT in UTF-8 format if all chars are gsm7 encoding compatible then
+        # the SMS is sent with gsm7 encoding. Else it will be sent in Unicode
+        # binary format.
+        # cf: https://dev.infobip.com/docs/send-single-sms
+        # cf: https://dev.infobip.com/docs/send-single-binary-sms
+        # param fields names:
+        # - from: string
+        #   Represents sender ID and it can be alphanumeric or numeric. Alphanumeric sender ID length should be between 3 and 11 characters (Example: CompanyName). Numeric sender ID length should be between 3 and 14 characters.
+        # - to: `required` array of strings
+        #   Array of message destination addresses. If you want to send a message to one destination, a single String is supported instead of an Array. Destination addresses must be in international format (Example: 41793026727).
+        # - text: string utf-8 encoded
+        #   Text of the message that will be sent.
+        #   (Developper comment: chars must be 7bits or comportment is not predictable on the receiving phones)
+        #
+        def single_utf8_sms(sms)
+          usage = self.compute_sms_usage(sms.text)
+          if usage[:format] == :gsm7 then
+            params = {
+              :from => sms.from,
+              :to => sms.to,
+              :text => sms.text
+            }
+            uri = "/sms/1/text/single"
+          else
+            text_array = sms.text.force_encoding('utf-8').codepoints.map { |c| sprintf('%02x', c) }
+            params = {
+              :from => sms.from,
+              :to => sms.to,
+              :binary => {
+                :hex => text_array.join(' '),
+                :dataCoding => 8,
+                :esmClass => 0
               }
-            end
-
-        is_success, result = execute_POST(
-                    "/sms/1/smsmessaging/outbound/#{sms.sender_address}/requests",
-                    params
-            )
-
-            convert_from_json(ResourceReference, result, !is_success)
+            }
+            uri = "/sms/1/binary/single"
+          end
+          is_success, result = execute_POST(uri , params )
+          convert_from_json(SimpleSMSAnswer, result, !is_success)
         end
 
-        def query_delivery_status(client_correlator_or_resource_reference)
-            if defined? client_correlator_or_resource_reference.client_correlator
-                client_correlator = client_correlator_or_resource_reference.client_correlator
+        # send multiple sms message to one or many destination addresses.
+        # TEXT in UTF-8 format if all chars are gsm7 encoding compatible then
+        # the SMS is sent with gsm7 encoding. Else it will be sent in Unicode
+        # binary format.
+        # cf: https://dev.infobip.com/docs/send-multiple-sms
+        # param fields names, array of :
+        # - from: string
+        #   Represents sender ID and it can be alphanumeric or numeric. Alphanumeric sender ID length should be between 3 and 11 characters (Example: CompanyName). Numeric sender ID length should be between 3 and 14 characters.
+        # - to: `required` array of strings
+        #   Array of message destination addresses. If you want to send a message to one destination, a single String is supported instead of an Array. Destination addresses must be in international format (Example: 41793026727).
+        # - text: string utf-8 encoded
+        #   Text of the message that will be sent.
+        #   (Developper comment: chars must be 7bits or comportment is not predictable on the receiving phones)
+        #
+        # Return an array of 2 results :
+        #   one for a /sms/1/text/multi query (nil if none is sent as text)
+        #   second one for a /sms/1/binary/multi query (nil if none is sent as binary)
+        def multiple_utf8_sms(smss)
+            params = {
+              :text => {
+                :uri => "/sms/1/text/multi",
+                :messages => []
+              },
+              :binary => {
+                :uri => "/sms/1/binary/multi",
+                :messages => []
+              }
+            }
+            smss.each { |sms|
+              usage = self.compute_sms_usage(sms.text)
+              if usage[:format] == :gsm7 then
+                params[:text][:messages].push({
+                  :from => sms.from,
+                  :to => sms.to,
+                  :text => sms.text
+                })
+              else
+                text_array = sms.text.force_encoding('utf-8').codepoints.map { |c| sprintf('%02x', c) }
+                params[:binary][:messages].push({
+                  :from => sms.from,
+                  :to => sms.to,
+                  :binary => {
+                    :hex => text_array.join(' '),
+                    :dataCoding => 8,
+                    :esmClass => 0
+                  }
+                })
+              end
+            }
+
+            results = []
+            if params[:text][:messages].length > 0 then
+              is_success, result = execute_POST( params[:text][:uri] , params[:text][:messages] )
+              results.push(convert_from_json(SimpleSMSAnswer, result, !is_success))
             else
-                client_correlator = client_correlator_or_resource_reference
+              results.push(nil)
             end
 
-            client_correlator = get_or_create_client_correlator(client_correlator)
-
-            params = {
-                'clientCorrelator' => client_correlator,
-            }
-
-            is_success, result = execute_GET(
-                    "/1/smsmessaging/outbound/TODO/requests/#{client_correlator}/deliveryInfos",
-                    params
-            )
-
-            return convert_from_json(DeliveryInfoList, result, !is_success)
-        end
-
-        def retrieve_inbound_messages(max_number=nil)
-            if Utils.empty(max_number)
-                max_number = 100
-            end
-
-            params = {
-                    'maxBatchSize' => max_number
-            }
-
-            is_success, result = execute_GET(
-                    '/1/smsmessaging/inbound/registrations/INBOUND/messages',
-                    params
-            )
-
-            return convert_from_json(InboundSmsMessages, result, ! is_success)
-        end
-
-        # To be used when http push with a delivery notification comes.
-        def self.unserialize_delivery_status(http_body)
-            json = JSONUtils.get_json(http_body)
-            return Conversions::from_json(DeliveryInfoNotification, json, false)
-        end
-
-
-        def self.unserialize_inbound_messages(http_body)
-            json = JSONUtils.get_json(http_body)
-            return Conversions::from_json(InboundSmsMessages, json, false)
-        end
-    end
-
-    class DataConnectionProfileClient < InfobipApiClient
-
-        def initialize(username, password, base_url=nil)
-            super(username, password, base_url)
-        end
-
-        def retrieve_roaming_status(destination_address, notify_url=nil)
-            # Retrieve asynchronously the customer’s roaming status for a single network-connected mobile device  (HLR)
-
-            params = {
-                'address' => destination_address
-            }
-            if notify_url
-                params['notifyURL'] = notify_url
-            end
-
-            is_success, result = execute_GET('/1/terminalstatus/queries/roamingStatus', params)
-
-            puts "params = #{params.inspect}"
-            puts "is_success = #{is_success}"
-            puts "result = #{result}"
-
-            if Utils.empty(notify_url)
-                json = JSONUtils.get_json(result)
-                return convert_from_json(TerminalRoamingStatus, json['roaming'], ! is_success);
+            if params[:binary][:messages].length > 0 then
+              is_success, result = execute_POST( params[:binary][:uri] , params[:binary][:messages] )
+              results.push(convert_from_json(SimpleSMSAnswer, result, !is_success))
             else
-                return convert_from_json(GenericObject, {}, ! is_success);
+              results.push(nil)
             end
+            return results
         end
 
-        # To be used when http push with a delivery notification comes.
-        def self.unserialize_roaming_status(http_body)
-            json = JSONUtils.get_json(http_body)
-            return Conversions::from_json(TerminalRoamingStatusNotification, json, false)
+        # Get delivery reports
+        # cf: https://dev.infobip.com/docs/delivery-reports
+        # parm fields names :
+        # - bulkId: string
+        #   The ID that uniquely identifies the request. Bulk ID will be received only when you send a message to more than one destination address.
+        # - messageId: string
+        # The ID that uniquely identifies the message sent.
+        # - limit: string
+        #   Number of returned delivery reports. Default value is 50. Max number per request is 10000.
+        def delivery_reports(params)
+            req = {} # safety parameters treatment
+            req[:bulkId] = params[:bulkId] if params.has_key?:bulkId
+            req[:messageId] = params[:messageId] if params.has_key?:messageId
+            req[:limit] = params[:limit] if params.has_key?:limit
+            is_success, result = execute_GET("/sms/1/reports", req)
+            convert_from_json(DeliveryReportList,result, !is_success)
         end
-
-    end
-
-    class CustomerProfileClient < InfobipApiClient
-
-        def initialize(username, password, base_url=nil)
-            super(username, password, base_url)
-        end
-
-        def get_account_balance()
-            is_success, result = execute_GET('/1/customerProfile/balance')
-
-            return convert_from_json(AccountBalance, result, ! is_success)
-        end
-
-        def get_customer_profile()
-            is_success, result = execute_GET('/1/customerProfile')
-
-            return convert_from_json(CustomerProfile, result, ! is_success)
-        end
-
     end
 
 end
